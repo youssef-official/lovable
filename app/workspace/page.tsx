@@ -188,10 +188,22 @@ function AISandboxPage() {
       try {
         if (sandboxIdParam) {
           console.log('[home] Attempting to restore sandbox:', sandboxIdParam);
-          // For now, just create a new sandbox - you could enhance this to actually restore
-          // the specific sandbox 
-          // if your backend supports it
           await createSandbox(true);
+
+          // Load saved chat history for this sandbox
+          try {
+            const savedChat = localStorage.getItem(`chat_${sandboxIdParam}`);
+            if (savedChat && isMounted) {
+              const parsedChat = JSON.parse(savedChat);
+              setChatMessages(parsedChat.map((msg: any) => ({
+                ...msg,
+                timestamp: new Date(msg.timestamp)
+              })));
+              console.log('[workspace] Loaded chat history from localStorage');
+            }
+          } catch (e) {
+            console.error('[workspace] Failed to load chat history:', e);
+          }
         } else {
           console.log('[home] No sandbox in URL, creating new sandbox automatically...');
           await createSandbox(true);
@@ -250,6 +262,25 @@ function AISandboxPage() {
       chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
     }
   }, [chatMessages]);
+
+  // Auto-submit prompt from URL when workspace loads
+  useEffect(() => {
+    const promptParam = searchParams.get('prompt');
+
+    if (promptParam && sandboxData && !aiChatInput && chatMessages.length <= 1) {
+      // Decode and set the prompt
+      const decodedPrompt = decodeURIComponent(promptParam.replace(/\+/g, ' '));
+      setAiChatInput(decodedPrompt);
+
+      // Auto-submit after a short delay to ensure everything is ready
+      setTimeout(() => {
+        if (sandboxData) {
+          sendAIChat(decodedPrompt);
+        }
+      }, 1000);
+    }
+  }, [sandboxData, searchParams]);
+
   const updateStatus = (text: string, active: boolean) => {
     setStatus({ text, active });
   };
@@ -267,7 +298,17 @@ function AISandboxPage() {
         }
       }
 
-      return [...prev, { content, type, timestamp: new Date(), metadata }];
+      const newMessages = [...prev, { content, type, timestamp: new Date(), metadata }];
+
+      // Save to localStorage for persistence
+      try {
+        const sandboxId = sandboxData?.sandboxId || 'temp';
+        localStorage.setItem(`chat_${sandboxId}`, JSON.stringify(newMessages));
+      } catch (e) {
+        console.error('Failed to save chat to localStorage:', e);
+      }
+
+      return newMessages;
     });
   };
   const checkAndInstallPackages = async () => {
@@ -399,7 +440,7 @@ function AISandboxPage() {
         const newParams = new URLSearchParams(searchParams.toString());
         newParams.set('sandbox', data.sandboxId);
         newParams.set('model', aiModel);
-        router.push(`/?${newParams.toString()}`, { scroll: false });
+        router.push(`/workspace?${newParams.toString()}`, { scroll: false });
 
         // Fade out loading background after sandbox loads
         setTimeout(() => {
@@ -2329,7 +2370,7 @@ Focus on creating a beautiful, functional website that matches the user's vision
               if (sandboxData?.sandboxId) {
                 params.set('sandbox', sandboxData.sandboxId);
               }
-              router.push(`/?${params.toString()}`);
+              router.push(`/workspace?${params.toString()}`);
             }}
             className={`px-3 py-1.5 text-sm ${isDarkMode ? 'bg-gray-800 text-white border-gray-700' : 'bg-white text-gray-900 border-gray-300'} border rounded-[10px] focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-colors duration-200`}
           >
