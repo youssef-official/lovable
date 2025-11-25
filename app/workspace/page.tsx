@@ -43,7 +43,7 @@ function AISandboxPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [projectId, setProjectId] = useState<string | null>(null);
-  const [aiModel, _setAiModel] = useState(appConfig.ai.defaultModel);
+  const [aiModel] = useState(appConfig.ai.defaultModel);
   const [activeTab, setActiveTab] = useState<'generation' | 'preview'>('preview');
   const [sandboxFiles, setSandboxFiles] = useState<Record<string, string>>({});
 
@@ -151,9 +151,9 @@ function AISandboxPage() {
       setChatMessages(loadedMessages);
     }
 
-    await createSandbox(files); // Pass files to createSandbox
+    const sandboxResult = await createSandbox(files); // Pass files to createSandbox
     setLoading(false);
-  }, [addChatMessage, createNewProject, session?.user?.id]);
+  }, [addChatMessage, createNewProject, session?.user?.id, createSandbox]);
 
   useEffect(() => {
     if (sessionStatus === 'authenticated' && session?.user?.id) {

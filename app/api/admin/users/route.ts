@@ -12,18 +12,8 @@ const supabaseAdmin = createClient(
 export async function GET() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
-
-  // Verify user is an admin by checking our public.users table
-  const { data: adminUser, error: adminError } = await supabaseAdmin
-    .from('users')
-    .select('role')
-    .eq('id', session.user.id)
-    .single();
-
-  if (adminError || adminUser?.role !== 'admin') {
+  // @ts-expect-error - role is a custom property added to the session
+  if (session?.user?.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
