@@ -47,15 +47,35 @@ export function Navigation() {
         <div className="hidden md:block">
           <UserButton />
         </div>
-        Community
-      </button>
-      <div className="pt-3 border-t border-white/10">
-        <UserButton />
       </div>
-    </nav>
-        </div >
-      )
-}
-    </header >
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden mt-4 glass-dark rounded-lg p-4 animate-fade-in-up">
+          <nav className="flex flex-col gap-3">
+            <Link
+              href="/"
+              className="text-white/80 hover:text-white transition-colors text-sm font-medium py-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Home
+            </Link>
+            <Link
+              href="/workspace"
+              className="text-white/80 hover:text-white transition-colors text-sm font-medium py-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Workspace
+            </Link>
+            <button className="text-white/80 hover:text-white transition-colors text-sm font-medium py-2 text-left">
+              Community
+            </button>
+            <div className="pt-3 border-t border-white/10">
+              <UserButton />
+            </div>
+          </nav>
+        </div>
+      )}
+    </header>
   );
 }
