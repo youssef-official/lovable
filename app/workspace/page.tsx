@@ -103,21 +103,24 @@ function AISandboxPage() {
     code_bg: isDarkMode ? 'bg-gray-900' : 'bg-gray-800',
   };
 
-  useEffect(() => {
-    if (sessionStatus === 'authenticated' && session?.user?.id) {
-      const projectIdFromUrl = searchParams.get('project');
-      if (projectIdFromUrl) {
-        setProjectId(projectIdFromUrl);
-        loadProject(projectIdFromUrl);
-      } else {
-        createNewProject(session.user.id);
-      }
-    } else if (sessionStatus === 'unauthenticated') {
-      router.push('/auth/signin');
-    }
-  }, [sessionStatus, session, searchParams, router]);
+  const createNewProject = useCallback(async (userId: string) => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('projects')
+      .insert({ user_id: userId, name: 'New Project' })
+      .select('id')
+      .single();
 
-  const loadProject = async (projId: string) => {
+    if (error || !data) {
+      console.error('Error creating new project:', error);
+      addChatMessage('Failed to create a new project.', 'error');
+      setLoading(false);
+      return;
+    }
+    router.push(`/workspace?project=${data.id}`);
+  }, [router]);
+
+  const loadProject = useCallback(async (projId: string) => {
     setLoading(true);
     const { data: projectData, error: projectError } = await supabase
       .from('projects')
@@ -152,24 +155,21 @@ function AISandboxPage() {
 
     await createSandbox(files); // Pass files to createSandbox
     setLoading(false);
-  };
+  }, []);
 
-  const createNewProject = async (userId: string) => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('projects')
-      .insert({ user_id: userId, name: 'New Project' })
-      .select('id')
-      .single();
-
-    if (error || !data) {
-      console.error('Error creating new project:', error);
-      addChatMessage('Failed to create a new project.', 'error');
-      setLoading(false);
-      return;
+  useEffect(() => {
+    if (sessionStatus === 'authenticated' && session?.user?.id) {
+      const projectIdFromUrl = searchParams.get('project');
+      if (projectIdFromUrl) {
+        setProjectId(projectIdFromUrl);
+        loadProject(projectIdFromUrl);
+      } else {
+        createNewProject(session.user.id);
+      }
+    } else if (sessionStatus === 'unauthenticated') {
+      router.push('/auth/signin');
     }
-    router.push(`/workspace?project=${data.id}`);
-  };
+  }, [sessionStatus, session, searchParams, router, createNewProject, loadProject]);
 
   useEffect(() => {
     if (chatMessagesRef.current) {
