@@ -10,23 +10,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-import {
-  FiFile,
-  FiChevronRight,
-  FiChevronDown,
-  BsFolderFill,
-  BsFolder2Open,
-  SiJavascript,
-  SiReact,
-  SiCss3,
-  SiJson,
-  FaSun,
-  FaMoon
-} from '@/lib/icons';
+import { FaSun, FaMoon } from '@/lib/icons';
 
 import { UserButton } from '@/components/UserButton';
 import { useApiRequest } from '@/hooks/useApiRequest';
-import { motion } from 'framer-motion';
 import CodeApplicationProgress, { type CodeApplicationState } from '@/components/CodeApplicationProgress';
 import Link from 'next/link';
 
@@ -56,9 +43,7 @@ function AISandboxPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [projectId, setProjectId] = useState<string | null>(null);
-  const [aiModel, setAiModel] = useState(appConfig.ai.defaultModel);
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['app', 'src']));
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [aiModel, _setAiModel] = useState(appConfig.ai.defaultModel);
   const [activeTab, setActiveTab] = useState<'generation' | 'preview'>('preview');
   const [sandboxFiles, setSandboxFiles] = useState<Record<string, string>>({});
 
@@ -67,7 +52,6 @@ function AISandboxPage() {
   }>({});
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const chatMessagesRef = useRef<HTMLDivElement>(null);
-  const codeDisplayRef = useRef<HTMLDivElement>(null);
   const [codeApplicationState, setCodeApplicationState] = useState<CodeApplicationState>({
     stage: null
   });
@@ -103,6 +87,20 @@ function AISandboxPage() {
     code_bg: isDarkMode ? 'bg-gray-900' : 'bg-gray-800',
   };
 
+  const addChatMessage = useCallback(async (content: string, type: ChatMessage['type'], metadata?: ChatMessage['metadata']) => {
+    const newMessage = { content, type, timestamp: new Date(), metadata };
+    setChatMessages(prev => [...prev, newMessage]);
+
+    if (projectId && session?.user?.id && (type === 'user' || type === 'ai')) {
+      await supabase.from('chat_messages').insert({
+        project_id: projectId,
+        user_id: session.user.id,
+        content,
+        sender: type,
+      });
+    }
+  }, [projectId, session?.user?.id]);
+
   const createNewProject = useCallback(async (userId: string) => {
     setLoading(true);
     const { data, error } = await supabase
@@ -113,12 +111,12 @@ function AISandboxPage() {
 
     if (error || !data) {
       console.error('Error creating new project:', error);
-      addChatMessage('Failed to create a new project.', 'error');
+      await addChatMessage('Failed to create a new project.', 'error');
       setLoading(false);
       return;
     }
     router.push(`/workspace?project=${data.id}`);
-  }, [router]);
+  }, [router, addChatMessage]);
 
   const loadProject = useCallback(async (projId: string) => {
     setLoading(true);
@@ -130,7 +128,7 @@ function AISandboxPage() {
 
     if (projectError || !projectData) {
       console.error('Error loading project:', projectError);
-      addChatMessage('Failed to load project.', 'error');
+      await addChatMessage('Failed to load project.', 'error');
       if (session?.user?.id) createNewProject(session.user.id);
       return;
     }
@@ -155,7 +153,7 @@ function AISandboxPage() {
 
     await createSandbox(files); // Pass files to createSandbox
     setLoading(false);
-  }, []);
+  }, [addChatMessage, createNewProject, session?.user?.id]);
 
   useEffect(() => {
     if (sessionStatus === 'authenticated' && session?.user?.id) {

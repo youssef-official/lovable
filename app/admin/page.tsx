@@ -23,7 +23,7 @@ export default function AdminDashboardPage() {
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
     } else if (status === 'authenticated') {
-      // @ts-expect-error
+      // @ts-expect-error - role is a custom property added to the session
       if (session.user.role !== 'admin') {
         setError('Unauthorized: Access denied.');
         setLoading(false);
