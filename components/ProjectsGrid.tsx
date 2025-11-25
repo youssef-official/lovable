@@ -51,44 +51,28 @@ export function ProjectsGrid({ projects, loading = false, userName }: ProjectsGr
                     ) : projects.length === 0 ? (
                         <div className="text-center py-12">
                             <p className="text-white/60 mb-4">No projects yet</p>
-                            <p className="text-white/40 text-sm">Start by creating your first project above!</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {projects.map((project) => (
-                                <Link
-                                    key={project.id}
-                                    href={`/?sandbox=${project.id}`}
-                                    className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg p-4 transition-all duration-300 cursor-pointer"
-                                >
-                                    <div className="w-full aspect-video bg-gray-800/50 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                                        <svg className="w-12 h-12 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
-                                        </svg>
-                                    </div>
+                            <h3 className="text-white font-medium mb-1 truncate">
+                                {project.name}
+                            </h3>
+                            <p className="text-white/60 text-sm mb-2 line-clamp-2">
+                                {project.description || 'No description'}
+                            </p>
 
-                                    <h3 className="text-white font-medium mb-1 truncate">
-                                        {project.name}
-                                    </h3>
-                                    <p className="text-white/60 text-sm mb-2 line-clamp-2">
-                                        {project.description || 'No description'}
-                                    </p>
+                            <div className="flex items-center gap-2 text-white/40 text-xs">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                {formatTimeAgo(project.updated_at)}
+                            </div>
 
-                                    <div className="flex items-center gap-2 text-white/40 text-xs">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <circle cx="12" cy="12" r="10"></circle>
-                                            <polyline points="12 6 12 12 16 14"></polyline>
-                                        </svg>
-                                        {formatTimeAgo(project.updated_at)}
-                                    </div>
-
-                                    <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-orange-500/0 to-pink-600/0 group-hover:from-orange-500/10 group-hover:to-pink-600/10 transition-all duration-300 pointer-events-none" />
-                                </Link>
-                            ))}
-                        </div>
-                    )}
+                            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-orange-500/0 to-pink-600/0 group-hover:from-orange-500/10 group-hover:to-pink-600/10 transition-all duration-300 pointer-events-none" />
+                        </Link>
+                    ))}
                 </div>
+                    )}
             </div>
-        </section>
+        </div>
+        </section >
     );
 }

@@ -10,7 +10,7 @@ export function Navigation() {
   return (
     <header className="relative z-10 w-full px-6 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <Link href="/home" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center">
             <span className="text-white font-bold text-lg">🧡</span>
           </div>
@@ -19,10 +19,10 @@ export function Navigation() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <Link href="/home" className="text-white/80 hover:text-white transition-colors text-sm font-medium">
+          <Link href="/" className="text-white/80 hover:text-white transition-colors text-sm font-medium">
             Home
           </Link>
-          <Link href="/" className="text-white/80 hover:text-white transition-colors text-sm font-medium">
+          <Link href="/workspace" className="text-white/80 hover:text-white transition-colors text-sm font-medium">
             Workspace
           </Link>
           <button className="text-white/80 hover:text-white transition-colors text-sm font-medium">
@@ -47,35 +47,15 @@ export function Navigation() {
         <div className="hidden md:block">
           <UserButton />
         </div>
+        Community
+      </button>
+      <div className="pt-3 border-t border-white/10">
+        <UserButton />
       </div>
-
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden mt-4 glass-dark rounded-lg p-4 animate-fade-in-up">
-          <nav className="flex flex-col gap-3">
-            <Link 
-              href="/home" 
-              className="text-white/80 hover:text-white transition-colors text-sm font-medium py-2"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Home
-            </Link>
-            <Link 
-              href="/" 
-              className="text-white/80 hover:text-white transition-colors text-sm font-medium py-2"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Workspace
-            </Link>
-            <button className="text-white/80 hover:text-white transition-colors text-sm font-medium py-2 text-left">
-              Community
-            </button>
-            <div className="pt-3 border-t border-white/10">
-              <UserButton />
-            </div>
-          </nav>
-        </div>
-      )}
-    </header>
+    </nav>
+        </div >
+      )
+}
+    </header >
   );
 }
