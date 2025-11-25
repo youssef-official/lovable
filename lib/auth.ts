@@ -1,6 +1,8 @@
 import { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
-import { UserDatabase } from "./database"
+import { SupabaseAdapter } from "@next-auth/supabase-adapter"
+import { supabase } from "./supabaseClient"
+import jwt from "jsonwebtoken"
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -9,36 +11,33 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
+  adapter: SupabaseAdapter({
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  }),
   callbacks: {
-    async signIn({ user, account, profile }) {
-      // Store user in database when they sign in
-      if (account?.provider === 'google' && user.email) {
-        try {
-          await UserDatabase.upsertUser({
-            google_id: user.id,
-            email: user.email,
-            name: user.name || undefined,
-            image: user.image || undefined,
-          });
-          return true;
-        } catch (error) {
-          console.error('Error storing user in database:', error);
-          // Still allow sign in even if database storage fails
-          return true;
+    async session({ session, user }) {
+      const signingSecret = process.env.SUPABASE_JWT_SECRET
+      if (signingSecret) {
+        const payload = {
+          aud: "authenticated",
+          exp: Math.floor(new Date(session.expires).getTime() / 1000),
+          sub: user.id,
+          email: user.email,
+          role: "authenticated",
+        }
+        session.supabaseAccessToken = jwt.sign(payload, signingSecret)
+        session.user.id = user.id
+        // Get user role from the users table
+        const { data, error } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+        if (data) {
+          session.user.role = data.role
         }
       }
-      return true;
-    },
-    async jwt({ token, account, profile }) {
-      // Persist the OAuth access_token and or the user id to the token right after signin
-      if (account) {
-        token.accessToken = account.access_token
-      }
-      return token
-    },
-    async session({ session, token }) {
-      // Send properties to the client, like an access_token and user id from a provider.
-      session.accessToken = token.accessToken
       return session
     },
   },
@@ -47,7 +46,7 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
 }

@@ -1,112 +1,61 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { UserDatabase } from '@/lib/database';
+import { createClient } from '@supabase/supabase-js';
 
-// Admin emails - you can add more admin emails here
-const ADMIN_EMAILS = [
-  'zainulabedeen0002@gmail.com', // Your email
-  // Add more admin emails as needed
-];
+// Admin client for elevated privileges
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-export async function GET(request: NextRequest) {
-  try {
-    // Check if DATABASE_URL is configured
-    if (!process.env.DATABASE_URL) {
-      console.error('DATABASE_URL environment variable is not set');
-      return NextResponse.json(
-        { error: 'Database configuration missing' },
-        { status: 500 }
-      );
-    }
+export async function GET() {
+  const session = await getServerSession(authOptions);
 
-    // Check if user is authenticated
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.email) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Please sign in' },
-        { status: 401 }
-      );
-    }
-
-    // Check if user is admin
-    if (!ADMIN_EMAILS.includes(session.user.email)) {
-      return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
-        { status: 403 }
-      );
-    }
-
-    // Get query parameters for pagination
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const offset = (page - 1) * limit;
-
-    // Test database connection first
-    const isConnected = await UserDatabase.testConnection();
-    if (!isConnected) {
-      console.error('Database connection failed');
-      return NextResponse.json(
-        { error: 'Database connection failed' },
-        { status: 500 }
-      );
-    }
-
-    // Fetch users from database
-    const { users, total } = await UserDatabase.getAllUsers(limit, offset);
-    const stats = await UserDatabase.getUserStats();
-
-    return NextResponse.json({
-      users,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-      stats,
-    });
-
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
-}
 
-// Test database connection endpoint
-export async function POST(request: NextRequest) {
-  try {
-    // Check if user is authenticated and admin
-    const session = await getServerSession(authOptions);
-    
-    if (!session || !session.user?.email || !ADMIN_EMAILS.includes(session.user.email)) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  // Verify user is an admin by checking our public.users table
+  const { data: adminUser, error: adminError } = await supabaseAdmin
+    .from('users')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
 
-    const isConnected = await UserDatabase.testConnection();
-    
-    return NextResponse.json({
-      connected: isConnected,
-      message: isConnected ? 'Database connection successful' : 'Database connection failed'
-    });
-
-  } catch (error) {
-    console.error('Error testing database connection:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+  if (adminError || adminUser?.role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
+
+  // If user is an admin, fetch all users
+  const { data: { users }, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
+
+  if (usersError) {
+    console.error('Error fetching users:', usersError);
+    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+  }
+
+  // Also fetch public user data to combine with auth data
+  const { data: publicUsers, error: publicUsersError } = await supabaseAdmin
+    .from('users')
+    .select('id, name, role');
+    
+  if (publicUsersError) {
+      console.error('Error fetching public user data:', publicUsersError);
+      // Continue without it, but log the error
+  }
+
+  // Combine auth user data with public user data
+  const combinedUsers = users.map(authUser => {
+      const publicUser = publicUsers?.find(u => u.id === authUser.id);
+      return {
+          id: authUser.id,
+          email: authUser.email,
+          name: publicUser?.name || authUser.user_metadata?.full_name || 'N/A',
+          role: publicUser?.role || 'user',
+          created_at: authUser.created_at,
+      };
+  });
+
+  return NextResponse.json(combinedUsers);
 }
