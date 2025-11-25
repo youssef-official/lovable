@@ -50,10 +50,12 @@ export default function DashboardPage() {
   };
 
   const createNewProject = async () => {
+    // @ts-expect-error - id is a custom property added to the session
     if (!session?.user?.id) return;
 
     const { data, error } = await supabase
         .from('projects')
+        // @ts-expect-error - id is a custom property added to the session
         .insert({ user_id: session.user.id, name: 'New Project' })
         .select('id')
         .single();
