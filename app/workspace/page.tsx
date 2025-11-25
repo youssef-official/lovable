@@ -177,20 +177,6 @@ function AISandboxPage() {
 
   const updateStatus = (text: string, active: boolean) => setStatus({ text, active });
 
-  const addChatMessage = async (content: string, type: ChatMessage['type'], metadata?: ChatMessage['metadata']) => {
-    const newMessage = { content, type, timestamp: new Date(), metadata };
-    setChatMessages(prev => [...prev, newMessage]);
-
-    if (projectId && session?.user?.id && (type === 'user' || type === 'ai')) {
-      await supabase.from('chat_messages').insert({
-        project_id: projectId,
-        user_id: session.user.id,
-        content,
-        sender: type,
-      });
-    }
-  };
-
   const createSandbox = async (files?: Record<string, string>) => {
     updateStatus('Creating sandbox...', false);
     try {
