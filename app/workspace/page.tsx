@@ -151,7 +151,7 @@ function AISandboxPage() {
       setChatMessages(loadedMessages);
     }
 
-    const sandboxResult = await createSandbox(files); // Pass files to createSandbox
+    await createSandbox(files); // Pass files to createSandbox
     setLoading(false);
   }, [addChatMessage, createNewProject, session?.user?.id, createSandbox]);
 
@@ -177,7 +177,7 @@ function AISandboxPage() {
 
   const updateStatus = (text: string, active: boolean) => setStatus({ text, active });
 
-  const createSandbox = async (files?: Record<string, string>) => {
+  const createSandbox = useCallback(async (files?: Record<string, string>) => {
     updateStatus('Creating sandbox...', false);
     try {
       const response = await makeRequestWithBody('/api/create-ai-sandbox', { files });
@@ -195,7 +195,7 @@ function AISandboxPage() {
       updateStatus('Error', false);
       addChatMessage(`Failed to create sandbox: ${error.message}`, 'error');
     }
-  };
+  }, [addChatMessage, makeRequestWithBody]);
 
   const applyGeneratedCode = async (code: string, isEdit: boolean = false) => {
     setCodeApplicationState({ stage: 'analyzing' });

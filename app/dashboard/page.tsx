@@ -23,8 +23,12 @@ export default function DashboardPage() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
-    } else if (status === 'authenticated' && session?.user?.id) {
-      fetchProjects(session.user.id);
+    } else if (status === 'authenticated') {
+      // @ts-expect-error - id is a custom property added to the session
+      if (session.user.id) {
+        // @ts-expect-error - id is a custom property added to the session
+        fetchProjects(session.user.id);
+      }
     }
   }, [status, session, router]);
 
